@@ -243,8 +243,6 @@ medium for compactions less than 128M, and an external compaction queue named
 DCQ1 for all other compactions.
 
 
-TODO will make the following look nice in markdown, not going to bother here
-
 ```
 config -s 'tserver.compaction.major.service.cs1.planner.opts.executors=[{"name":"small","type":"internal","maxSize":"32M","numThreads":4},{"name":"medium","type":"internal","maxSize":"128M","numThreads":2},{"name":"large","type":"external","queue":"DCQ1"}]'
 config -s tserver.compaction.major.service.cs1.planner=org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner
@@ -269,8 +267,18 @@ following command was used to do this.
 nohup accumulo compaction-coordinator >/var/data/logs/accumulo/compaction-coordinator.out 2>/var/data/logs/accumulo/compaction-coordinator.err &
 ```
 
-To start Compactors, Accumulo’s docker image was built using these commands
-[link to supplemental doc] and pushed to a container registry accessible by
+To start Compactors, Accumulo’s [docker](https://github.com/apache/accumulo-docker/tree/next-release)
+image was built from the `next-release` branch by checking out the Apache
+Accumulo git repo at commit dad7e01ae7d450064cba5d60a1e0770311ebdb64 and building
+the binary distribution using the command `mvn clean package -DskipTests`. The
+resulting tar file was copied to the accumulo-docker base directory and the image
+was built using the command:
+
+```
+docker build --build-arg ACCUMULO_VERSION=2.1.0-SNAPSHOT --build-arg ACCUMULO_FILE=accumulo-2.1.0-SNAPSHOT-bin.tar.gz -t accumulo .
+```
+
+The Docker image was then pushed to a container registry accessible by
 Kubernetes. Then the following commands were run to start the compactors using
 [accumulo-compactor-muchos.yaml](/images/blog/202106_ecomp/accumulo-compactor-muchos.yaml).
 The yaml file contains comments explaining issues related to IP addresses and DNS names.
@@ -381,10 +389,6 @@ compactors running until all the work was done.
 ![Full Table Compactions Running](/images/blog/202106_ecomp/full-table-compaction-queued.png)
 
 ![Full Table Compactions Queued](/images/blog/202106_ecomp/full-table-compaction-running.png)
-
-//TODO document accumulo docker build, link to supplemental doc
-//TODO document deployment yaml, link to supplemental doc.. Maybe put comments in that doc going over details of IP addr stuff
-
 
 ## Hurdles
 
