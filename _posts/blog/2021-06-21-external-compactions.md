@@ -188,6 +188,8 @@ taken offline.
 
 ## Cluster Test
 
+### Setup
+
 The following tests were run on a cluster to exercise this new feature.
 
  1. Run continuous ingest for 24h with large compactions running externally in an autoscaled Kubernetes cluster.
@@ -220,6 +222,8 @@ outside of Kubernetes in the Muchos cluster.  For some insights into how these
 problems were overcome, checkout the comments in the [deployment
 spec](/images/blog/202106_ecomp/accumulo-compactor-muchos.yaml) used.
  
+### Configuration
+
 The following Accumulo shell commands set up a new compaction service named
 cs1.  This compaction service has an internal executor with 4 threads named
 small for compactions less than 32M, an internal executor with 2 threads named
@@ -282,6 +286,7 @@ An earlier test tried running 1000 external compaction which stressed HDFS, and
 therefore the metadata table a bit, leading to the changes in #2152 which
 worked well in this test.
 
+### Ingesting data
 
 After the compactors were started, 22 continuous ingest clients (from
 accumulo_testing) were started.  The following plot shows the number of
@@ -349,6 +354,8 @@ of the test.  When ingest was stopped, there were 266 billion key values in the
 continuous ingest table.
 
 ![Table Entries](/images/blog/202106_ecomp/ci-entries.png)
+
+### Full table compaction
 
 After stopping ingest and letting things settle, a full table compaction was
 kicked off. Since all of these compactions would be over 128M, all of them were
