@@ -3,6 +3,11 @@ title: External Compactions
 author: Dave Marion, Keith Turner
 ---
 
+External compactions are a new feature in Accumulo 2.1.0 which allows
+compaction work to run outside of Tablet Servers.
+
+## Overview
+
 There are two types of compactions[1] in Accumulo - Minor and Major. Minor
 compactions flush recently written data from memory to a new file. Major
 compactions merge two or more tablet files together into one new file. Starting
@@ -47,8 +52,11 @@ properties. The simplest way to explain this is that you can now define a
 service for executing compactions and then assign that service to a table
 (which implies you can have multiple services assigned to different tables).
 This gives the flexibility to prevent one table's compactions from impacting
-another table. Each service has named thread pools with size thresholds. For
-example, the configuration below defines a compaction service named cs1 using
+another table. Each service has named thread pools with size thresholds. 
+
+### Configuration
+
+The configuration below defines a compaction service named cs1 using
 the DefaultCompactionPlanner that is configured to have three named thread
 pools (small, medium, and large). Each thread pool is configured with a number
 of Threads to run compactions and a size threshold. If the sum of the input
@@ -93,7 +101,7 @@ largest set of files that met the criteria.  Both algorithms do logarithmic
 amounts of work.  The new algorithm better utilizes multiple thread pools
 available for running comactions of different sizes.
 
-## Compactor
+### Compactor
 
 
 A Compactor is started with the name of the queue for which it will complete
@@ -115,7 +123,7 @@ the Tablet Server to the Compactor. The Compactor communicates information back
 to the CompactionCoordinator when the compaction has started, finished
 (successfully or not), and during the compaction (progress updates).
 
-## CompactionCoordinator
+### CompactionCoordinator
 
 The CompactionCoordinator is a singleton process in the system like the
 Manager. Also, like the Manager it supports standby CompactionCoordinator’s
@@ -165,8 +173,7 @@ the final state markers related to tablets that no longer exist. In the case of
 an External compaction failure the CompactionCoordinator notifies the tablet
 and the tablet cleans up file reservations and removes the metadata entry.
 
-## Edge Cases
-
+### Edge Cases
 
 There are several situations involving External compactions that we tested as part of this feature. These are:
 
