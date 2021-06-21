@@ -39,7 +39,12 @@ compactions:
  * Reduce the load on the TabletServer, giving it more cycles to insert mutations and respond to scans (assuming it’s running on different hosts)
  * Allow Major compactions to be scaled differently than the number of TabletServers
  * Even out hotspots where a few Tablet Servers have a lot of compaction work. External compactions allow this work to spread much wider than previously possible.
-The External Compaction feature in Apache Accumulo version 2.1.0 adds two new system-level processes, and new configuration properties. The new system-level processes are the Compactor and the CompactionCoordinator. 
+
+
+The External Compaction feature in Apache Accumulo version 2.1.0 adds two new
+system-level processes, and new configuration properties. The new system-level
+processes are the Compactor and the CompactionCoordinator.
+
  * The Compactor is a process that is responsible for executing a Major compaction. There can be many Compactor’s running on a system. The Compactor communicates with the CompactionCoordinator to get information about the next Major compaction it will run and to report the completion state.
  * The CompactionCoordinator is a single process like the Manager. It is responsible for communicating with the Tablet Servers to gather information about queued External compactions, to reserve a Major compaction on the Compactor’s behalf, and to report the completion status of the reserved Major compaction.  For external compactions that complete when the tablet is offline, the coordinator buffers this information and reports it later.
 Configuration
@@ -267,8 +272,8 @@ nohup accumulo compaction-coordinator >/var/data/logs/accumulo/compaction-coordi
 To start Compactors, Accumulo’s docker image was built using these commands
 [link to supplemental doc] and pushed to a container registry accessible by
 Kubernetes. Then the following commands were run to start the compactors using
-accumulo-compactor-muchos.yaml[3]. The yaml file contains comments explaining
-issues related to IP addresses and DNS names.
+[accumulo-compactor-muchos.yaml](/images/blog/202106_ecomp/accumulo-compactor-muchos.yaml).
+The yaml file contains comments explaining issues related to IP addresses and DNS names.
 
 ```
 kubectl apply -f accumulo-compactor-muchos.yaml 
@@ -386,7 +391,7 @@ compactors running until all the work was done.
 ### How to Scale Up
 
 We ran into several issues running the Compactors in Kubernetes. First, we knew
-that we could use Kubernetes Horizontal Pod Autoscaler[4] (HPA) to scale the
+that we could use Kubernetes Horizontal Pod Autoscaler[3] (HPA) to scale the
 Compactors up and down based on load. But the question remained how to do that.
 Probably the best metric to use for scaling the Compactors is the size of the
 external compaction queue. Another possible solution is to take the DataNode
@@ -394,8 +399,8 @@ CPU usage into account somehow. We found that in scaling up the Compactors
 based on their CPU usage we likely overloaded the DataNodes. 
 
 To use custom metrics you would need to get the metrics from Accumulo into a
-metrics store that has a metrics adapter[5]. One possible solution, available
-in Hadoop 3.3.0, is to use Prometheus, the Prometheus Adapter[6], and enable
+metrics store that has a metrics adapter[4]. One possible solution, available
+in Hadoop 3.3.0, is to use Prometheus, the Prometheus Adapter[5], and enable
 the Hadoop PrometheusMetricsSink added in
 https://issues.apache.org/jira/browse/HADOOP-16398 to expose the custom queue
 size metrics. This seemed like the right solution, but it also seemed like a
@@ -405,7 +410,7 @@ scale off CPU usage of the Compactors.
 
 ### Gracefully Scaling Down
 
-The Kubernetes Pod termination process[7] provides a mechanism for the user to
+The Kubernetes Pod termination process[6] provides a mechanism for the user to
 define a pre-stop hook that will be called before the Pod is terminated.
 Without this hook Kubernetes sends a SIGTERM to the Pod, followed by a
 user-defined grace period, then a SIGKILL. For the purposes of this test we did
@@ -440,9 +445,14 @@ cluster to create compactions that were run both internal and external to the
 Tablet Server and demonstrated external compactions completing successfully and
 Compactors being killed. 
 
-[1]: https://storage.googleapis.com/pub-tools-public-publication-data/pdf/68a74a85e1662fe02ff3967497f31fda7f32225c.pdf
-[2]: https://github.com/apache/accumulo/commit/dad7e01ae7d450064cba5d60a1e0770311ebdb64
-[4] https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/
-[5] https://github.com/kubernetes/metrics/blob/master/IMPLEMENTATIONS.md#custom-metrics-api
-[6] https://github.com/kubernetes-sigs/prometheus-adapter
-[7]https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#pod-termination
+[1] https://storage.googleapis.com/pub-tools-public-publication-data/pdf/68a74a85e1662fe02ff3967497f31fda7f32225c.pdf
+
+[2] https://github.com/apache/accumulo/commit/dad7e01ae7d450064cba5d60a1e0770311ebdb64
+
+[3] https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/
+
+[4] https://github.com/kubernetes/metrics/blob/master/IMPLEMENTATIONS.md#custom-metrics-api
+
+[5] https://github.com/kubernetes-sigs/prometheus-adapter
+
+[6] https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#pod-termination
