@@ -206,18 +206,20 @@ configuration.
  * 23 D16s_v4 VMs, each with 16x128G HDDs stripped using LVM. 22 were workers.
 
 
-In addition to the 23 VM cluster setup by Muchos, a variably sized Azure
-Kubernetes Service cluster was set up to run external compactions. The
-Kubernetes cluster was backed by at least 3 D8s_v4 VMs, with VMs autoscaling
-with the number of pods running.  The Muchos and Kubernetes clusters were on
-the same private vnet, each with its own /16 subnet in the 10.x.x.x IP address
-space.  One problem we ran into was communication between compactors running
-inside Kubernetes with processes like the compaction-coordinator and datanodes
-running outside of Kubernetes in the Muchos cluster.  Our solutions will be
-discussed later. 
+The following diagram shows how the two clusters were setup.  The Muchos and
+Kubernetes clusters were on the same private vnet, each with its own /16 subnet
+in the 10.x.x.x IP address space.  The Kubernetes cluster that ran external
+compactions was backed by at least 3 D8s_v4 VMs, with VMs autoscaling with the
+number of pods running.
 
-![Cluster Layout](/images/blog/202106_ecomp/cluster-layout.png)
+![Cluster Layout](/images/blog/202106_ecomp/clusters-layout.png)
 
+One problem we ran into was communication between compactors running inside
+Kubernetes with processes like the compaction-coordinator and datanodes running
+outside of Kubernetes in the Muchos cluster.  For some insights into how these
+problems were overcome, checkout the comments in the [deployment
+spec](/images/blog/202106_ecomp/accumulo-compactor-muchos.yaml) used.
+ 
 The following Accumulo shell commands set up a new compaction service named
 cs1.  This compaction service has an internal executor with 4 threads named
 small for compactions less than 32M, an internal executor with 2 threads named
