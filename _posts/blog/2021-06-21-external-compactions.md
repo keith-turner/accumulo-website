@@ -188,12 +188,12 @@ taken offline.
 
 ## Cluster Test
 
-### Setup
-
 The following tests were run on a cluster to exercise this new feature.
 
  1. Run continuous ingest for 24h with large compactions running externally in an autoscaled Kubernetes cluster.
  2. After ingest completion, started a full table compaction with all compactions running externally.
+
+### Setup
 
 For these tests Accumulo, Zookeeper, and HDFS were run on a cluster in Azure
 setup by Muchos and external compactions were run in a separate Kubernetes
