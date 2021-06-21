@@ -47,7 +47,8 @@ processes are the Compactor and the CompactionCoordinator.
 
  * The Compactor is a process that is responsible for executing a Major compaction. There can be many Compactor’s running on a system. The Compactor communicates with the CompactionCoordinator to get information about the next Major compaction it will run and to report the completion state.
  * The CompactionCoordinator is a single process like the Manager. It is responsible for communicating with the Tablet Servers to gather information about queued External compactions, to reserve a Major compaction on the Compactor’s behalf, and to report the completion status of the reserved Major compaction.  For external compactions that complete when the tablet is offline, the coordinator buffers this information and reports it later.
-Configuration
+
+## Details
 
 Before we explain the implementation for External compactions, it’s probably
 useful to explain the changes for Major compactions that were made in the 2.1.0
@@ -107,7 +108,6 @@ amounts of work.  The new algorithm better utilizes multiple thread pools
 available for running comactions of different sizes.
 
 ### Compactor
-
 
 A Compactor is started with the name of the queue for which it will complete
 Major compactions. You pass in the queue name when starting the Compactor, like
