@@ -8,7 +8,7 @@ compaction work to run outside of Tablet Servers.
 
 ## Overview
 
-There are two types of compactions[1] in Accumulo - Minor and Major. Minor
+There are two types of [compactions][1] in Accumulo - Minor and Major. Minor
 compactions flush recently written data from memory to a new file. Major
 compactions merge two or more tablet files together into one new file. Starting
 in 2.1 Tablet Servers can run multiple major compactions for a Tablet
@@ -133,7 +133,7 @@ to the CompactionCoordinator when the compaction has started, finished
 The CompactionCoordinator is a singleton process in the system like the
 Manager. Also, like the Manager it supports standby CompactionCoordinator’s
 using locks in ZooKeeper. The CompactionCoordinator is started using the
-command[h]:
+command:
 
 ```
 bin/accumulo compaction-coordinator
@@ -216,7 +216,7 @@ configuration.
  * Open JDK 11
  * Zookeeper 3.6.2
  * Hadoop 3.3.0
- * Accumulo 2.1.0-SNAPSHOT dad7e01ae7d450064cba5d60a1e0770311ebdb64[2]
+ * Accumulo 2.1.0-SNAPSHOT [dad7e01ae7d450064cba5d60a1e0770311ebdb64][2]
  * 23 D16s_v4 VMs, each with 16x128G HDDs stripped using LVM. 22 were workers.
 
 
@@ -395,7 +395,7 @@ compactors running until all the work was done.
 ### How to Scale Up
 
 We ran into several issues running the Compactors in Kubernetes. First, we knew
-that we could use Kubernetes Horizontal Pod Autoscaler[3] (HPA) to scale the
+that we could use Kubernetes [Horizontal Pod Autoscaler][3] (HPA) to scale the
 Compactors up and down based on load. But the question remained how to do that.
 Probably the best metric to use for scaling the Compactors is the size of the
 external compaction queue. Another possible solution is to take the DataNode
@@ -403,8 +403,8 @@ CPU usage into account somehow. We found that in scaling up the Compactors
 based on their CPU usage we likely overloaded the DataNodes. 
 
 To use custom metrics you would need to get the metrics from Accumulo into a
-metrics store that has a metrics adapter[4]. One possible solution, available
-in Hadoop 3.3.0, is to use Prometheus, the Prometheus Adapter[5], and enable
+metrics store that has a [metrics adapter][4]. One possible solution, available
+in Hadoop 3.3.0, is to use Prometheus, the [Prometheus Adapter][5], and enable
 the Hadoop PrometheusMetricsSink added in
 https://issues.apache.org/jira/browse/HADOOP-16398 to expose the custom queue
 size metrics. This seemed like the right solution, but it also seemed like a
@@ -414,7 +414,7 @@ scale off CPU usage of the Compactors.
 
 ### Gracefully Scaling Down
 
-The Kubernetes Pod termination process[6] provides a mechanism for the user to
+The Kubernetes Pod [termination process][6] provides a mechanism for the user to
 define a pre-stop hook that will be called before the Pod is terminated.
 Without this hook Kubernetes sends a SIGTERM to the Pod, followed by a
 user-defined grace period, then a SIGKILL. For the purposes of this test we did
@@ -449,14 +449,9 @@ cluster to create compactions that were run both internal and external to the
 Tablet Server and demonstrated external compactions completing successfully and
 Compactors being killed. 
 
-[1] https://storage.googleapis.com/pub-tools-public-publication-data/pdf/68a74a85e1662fe02ff3967497f31fda7f32225c.pdf
-
-[2] https://github.com/apache/accumulo/commit/dad7e01ae7d450064cba5d60a1e0770311ebdb64
-
-[3] https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/
-
-[4] https://github.com/kubernetes/metrics/blob/master/IMPLEMENTATIONS.md#custom-metrics-api
-
-[5] https://github.com/kubernetes-sigs/prometheus-adapter
-
-[6] https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#pod-termination
+[1]:https://storage.googleapis.com/pub-tools-public-publication-data/pdf/68a74a85e1662fe02ff3967497f31fda7f32225c.pdf
+[2]:https://github.com/apache/accumulo/commit/dad7e01ae7d450064cba5d60a1e0770311ebdb64
+[3]:https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/
+[4]:https://github.com/kubernetes/metrics/blob/master/IMPLEMENTATIONS.md#custom-metrics-api
+[5]:https://github.com/kubernetes-sigs/prometheus-adapter
+[6]:https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#pod-termination
