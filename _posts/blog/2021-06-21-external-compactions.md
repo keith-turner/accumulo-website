@@ -278,7 +278,7 @@ the accumulo-docker base directory and the image was built using the command:
 docker build --build-arg ACCUMULO_VERSION=2.1.0-SNAPSHOT --build-arg ACCUMULO_FILE=accumulo-2.1.0-SNAPSHOT-bin.tar.gz \
              --build-arg HADOOP_FILE=hadoop-3.3.0.tar.gz \
              --build-arg ZOOKEEPER_VERSION=3.6.2  --build-arg ZOOKEEPER_FILE=apache-zookeeper-3.6.2-bin.tar.gz  \
-             --build-arg HADOOP_USER_NAME=centos -t accumulo .
+             -t accumulo .
 ```
 
 The Docker image was tagged and then pushed to a container registry accessible by
