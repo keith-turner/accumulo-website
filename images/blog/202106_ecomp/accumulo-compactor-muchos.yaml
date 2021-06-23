@@ -60,8 +60,8 @@ data:
         <value>true</value>
       </property>
       <property>
-            <name>dfs.nameservices</name>
-            <value>accucluster</value>
+        <name>dfs.nameservices</name>
+        <value>accucluster</value>
       </property>
       <property>
         <name>dfs.internal.nameservices</name>
@@ -76,24 +76,24 @@ data:
         <value>ect2-0:50091</value>
       </property>
       <property>
-    	  <name>dfs.namenode.rpc-address.accucluster</name>
+  	<name>dfs.namenode.rpc-address.accucluster</name>
         <value>ect2-0:8020</value>
       </property>
       <property>
-            <name>dfs.namenode.http-address.accucluster</name>
-            <value>ect2-0:50070</value>
+        <name>dfs.namenode.http-address.accucluster</name>
+        <value>ect2-0:50070</value>
       </property>
       <property>
-            <name>dfs.namenode.https-address.accucluster</name>
-            <value>ect2-0:50071</value>
-      </property>
-        <property>
-            <name>dfs.namenode.servicerpc-address.accucluster</name>
-            <value>ect2-0:8025</value>
+        <name>dfs.namenode.https-address.accucluster</name>
+        <value>ect2-0:50071</value>
       </property>
       <property>
-            <name>dfs.namenode.lifeline.rpc-address.accucluster</name>
-            <value>ect2-0:8050</value>
+        <name>dfs.namenode.servicerpc-address.accucluster</name>
+        <value>ect2-0:8025</value>
+      </property>
+      <property>
+        <name>dfs.namenode.lifeline.rpc-address.accucluster</name>
+        <value>ect2-0:8050</value>
       </property>
       <property>
         <name>dfs.client.failover.proxy.provider.accucluster</name>
