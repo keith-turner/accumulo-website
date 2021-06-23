@@ -298,7 +298,7 @@ pods are added to meet the 80% goal. When it's below 80%, pods
 are stopped to meet the 80% goal with 5 minutes between scale down
 events. This can sometimes lead to running compactions being
 stopped. During the test there were ~537 dead compactions that were probably
-caused by this( there were 44K successful external compactions). The max of 660
+caused by this (there were 44K successful external compactions). The max of 660
 was chosen based on the number of datanodes in the Muchos cluster.  There were
 22 datanodes and 30x22=660, so this conceptually sets a limit of 30 external
 compactions per datanode.  This was well tolerated by the Muchos cluster.  One
@@ -427,7 +427,11 @@ the Hadoop PrometheusMetricsSink added in
 size metrics. This seemed like the right solution, but it also seemed like a
 lot of work that was outside the scope of this blog post. Ultimately we decided
 to take the simplest approach - use the native Kubernetes metrics-server and
-scale off CPU usage of the Compactors.
+scale off CPU usage of the Compactors. As you can see in the "Compactions Queued"
+and "Compactions Running" graphs above from the full table compaction, it took about
+45 minutes for Kubernetes to scale up Compactors to the maximum configured (660). Compactors
+likely would have been scaled up much faster if scaling was done off the queued compactions
+instead of CPU usage.
 
 ### Gracefully Scaling Down
 
@@ -447,14 +451,14 @@ scale down.
 The other major issue we ran into was connectivity between the Compactors and
 the other server processes. The Compactor communicates with ZooKeeper and the
 Compaction Coordinator, both of which were running outside of Kubernetes.  There
-as no common DNS between the Muchos and Kubernetes cluster, but IPs were
+is no common DNS between the Muchos and Kubernetes cluster, but IPs were
 visible to both. The Compactor connects to ZooKeeper to find the address of the
 Compaction Coordinator so that it can connect to it and look for work. By
 default the Accumulo server processes use the hostname as their address which
 would not work as those names would not resolve inside the Kubernetes cluster.
 We had to start the Accumulo processes using the `-a` argument and set the
 hostname to the IP address. Solving connectivity issues between components
-running in Kubernetes and components external depends on the capabilities
+running in Kubernetes and components external to Kubernetes depends on the capabilities
 available in the environment and the `-a` option may be part of the solution.
 
 ## Conclusion
