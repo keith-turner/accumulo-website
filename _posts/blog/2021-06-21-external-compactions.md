@@ -15,29 +15,29 @@ in 2.1 Tablet Servers can run multiple major compactions for a Tablet
 concurrently; there is no longer a single thread pool per Tablet Server that
 runs compactions. Major compactions can be resource intensive and may run for a
 long time depending on several factors, to include the number and size of the
-input files, and the iterators configured to run during Major compaction.
+input files, and the iterators configured to run during major compaction.
 Additionally, the Tablet Server does not currently have a mechanism in place to
-stop a Major compaction that is taking too long or using too many resources.
-There is a mechanism to throttle the read and write speed of Major compactions
+stop a major compaction that is taking too long or using too many resources.
+There is a mechanism to throttle the read and write speed of major compactions
 as a way to reduce the resource contention on a Tablet Server where many
 concurrent compactions are running. However, throttling compactions on a busy
 system will just lead to an increasing amount of queued compactions. Finally,
-Major compaction work can be wasted in the event of an untimely death of the
+major compaction work can be wasted in the event of an untimely death of the
 Tablet Server or if a Tablet is migrated to another Tablet Server.
 
 
 An external compaction is a major compaction that occurs outside of a Tablet
-Server. The external compaction feature is an extension of the Major compaction
+Server. The external compaction feature is an extension of the major compaction
 service in the Tablet Server and is configured as part of the systems’
 compaction service configuration. Thus, it is an optional feature. The goal of
 the external compaction feature is to overcome some of the drawbacks of the
 Major compactions that happen inside the Tablet Server. Specifically, external
 compactions:
 
- * Allow Major compactions to continue when the originating TabletServer dies
- * Allow Major compactions to occur while a Tablet migrates to a new Tablet Server
+ * Allow major compactions to continue when the originating TabletServer dies
+ * Allow major compactions to occur while a Tablet migrates to a new Tablet Server
  * Reduce the load on the TabletServer, giving it more cycles to insert mutations and respond to scans (assuming it’s running on different hosts)
- * Allow Major compactions to be scaled differently than the number of TabletServers
+ * Allow major compactions to be scaled differently than the number of TabletServers
  * Even out hotspots where a few Tablet Servers have a lot of compaction work. External compactions allow this work to spread much wider than previously possible.
 
 
@@ -45,15 +45,15 @@ The external compaction feature in Apache Accumulo version 2.1.0 adds two new
 system-level processes and new configuration properties. The new system-level
 processes are the Compactor and the Compaction Coordinator.
 
- * The Compactor is a process that is responsible for executing a Major compaction. There can be many Compactor’s running on a system. The Compactor communicates with the Compaction Coordinator to get information about the next Major compaction it will run and to report the completion state.
- * The Compaction Coordinator is a single process like the Manager. It is responsible for communicating with the Tablet Servers to gather information about queued external compactions, to reserve a Major compaction on the Compactor’s behalf, and to report the completion status of the reserved Major compaction.  For external compactions that complete when the Tablet is offline, the Compaction Coordinator buffers this information and reports it later.
+ * The Compactor is a process that is responsible for executing a major compaction. There can be many Compactor’s running on a system. The Compactor communicates with the Compaction Coordinator to get information about the next major compaction it will run and to report the completion state.
+ * The Compaction Coordinator is a single process like the Manager. It is responsible for communicating with the Tablet Servers to gather information about queued external compactions, to reserve a major compaction on the Compactor’s behalf, and to report the completion status of the reserved major compaction.  For external compactions that complete when the Tablet is offline, the Compaction Coordinator buffers this information and reports it later.
 
 ## Details
 
 Before we explain the implementation for external compactions, it’s probably
-useful to explain the changes for Major compactions that were made in the 2.1.0
+useful to explain the changes for major compactions that were made in the 2.1.0
 branch before external compactions were added. This is most apparent in the
-tserver.compaction.major.service and table.compaction.dispatcher configuration
+`tserver.compaction.major.service` and `table.compaction.dispatcher` configuration
 properties. The simplest way to explain this is that you can now define a
 service for executing compactions and then assign that service to a table
 (which implies you can have multiple services assigned to different tables).
@@ -66,7 +66,7 @@ The configuration below defines a compaction service named cs1 using
 the DefaultCompactionPlanner that is configured to have three named thread
 pools (small, medium, and large). Each thread pool is configured with a number
 of Threads to run compactions and a size threshold. If the sum of the input
-file sizes is less than 16MB, then the Major compaction will be assigned to the
+file sizes is less than 16MB, then the major compaction will be assigned to the
 small pool, for example.
 
 ```
@@ -110,7 +110,7 @@ available for running comactions of different sizes.
 ### Compactor
 
 A Compactor is started with the name of the queue for which it will complete
-Major compactions. You pass in the queue name when starting the Compactor, like
+major compactions. You pass in the queue name when starting the Compactor, like
 so:
 
 ```
@@ -121,8 +121,8 @@ Once started the Compactor tries to find the location of the
 Compaction Coordinator in ZooKeeper and connect to it. Then, it asks the
 Compaction Coordinator for the next compaction job for the queue. The
 Compaction Coordinator will return to the Compactor the necessary information to
-run the Major compaction, assuming there is work to be done. Note that the
-class performing the Major compaction in the Compactor is the same one used in
+run the major compaction, assuming there is work to be done. Note that the
+class performing the major compaction in the Compactor is the same one used in
 the Tablet Server, so we are just transferring all of the input parameters from
 the Tablet Server to the Compactor. The Compactor communicates information back
 to the Compaction Coordinator when the compaction has started, finished
@@ -140,10 +140,10 @@ bin/accumulo compaction-coordinator
 ```
 
 When running, the Compaction Coordinator polls the TabletServers for summary
-information about their external compaction queues. It keeps track of the Major
+information about their external compaction queues. It keeps track of the major
 compaction priorities for each Tablet Server and queue. When a Compactor
-requests the next Major compaction job the Compaction Coordinator finds the
-Tablet Server with the highest priority Major compaction for that queue and
+requests the next major compaction job the Compaction Coordinator finds the
+Tablet Server with the highest priority major compaction for that queue and
 communicates with that Tablet Server to reserve an external compaction. The
 priority in this case is an integer value based on the number of input files
 for the compaction. For system compactions, the number is negative starting at
@@ -159,7 +159,7 @@ example of the ecomp metadata column:
 ```
 
 When the Compactor notifies the Compaction Coordinator that it has finished the
-Major compaction, the Compaction Coordinator attempts to notify the Tablet
+major compaction, the Compaction Coordinator attempts to notify the Tablet
 Server and inserts an external compaction final state marker into the metadata
 table. Below is an example of the final state marker:
 
