@@ -65,7 +65,7 @@ another table. Each service has named thread pools with size thresholds.
 The configuration below defines a compaction service named cs1 using
 the DefaultCompactionPlanner that is configured to have three named thread
 pools (small, medium, and large). Each thread pool is configured with a number
-of Threads to run compactions and a size threshold. If the sum of the input
+of threads to run compactions and a size threshold. If the sum of the input
 file sizes is less than 16MB, then the major compaction will be assigned to the
 small pool, for example.
 
