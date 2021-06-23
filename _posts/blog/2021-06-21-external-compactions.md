@@ -28,7 +28,7 @@ Tablet Server or if a Tablet is migrated to another Tablet Server.
 
 An external compaction is a major compaction that occurs outside of a Tablet
 Server. The external compaction feature is an extension of the major compaction
-service in the Tablet Server and is configured as part of the systems’
+service in the Tablet Server and is configured as part of the systems
 compaction service configuration. Thus, it is an optional feature. The goal of
 the external compaction feature is to overcome some of the drawbacks of the
 Major compactions that happen inside the Tablet Server. Specifically, external
@@ -36,8 +36,8 @@ compactions:
 
  * Allow major compactions to continue when the originating TabletServer dies
  * Allow major compactions to occur while a Tablet migrates to a new Tablet Server
- * Reduce the load on the TabletServer, giving it more cycles to insert mutations and respond to scans (assuming it’s running on different hosts)
- * Allow major compactions to be scaled differently than the number of TabletServers
+ * Reduce the load on the TabletServer, giving it more cycles to insert mutations and respond to scans (assuming it’s running on different hosts).  Map reduce jobs and compactions can lower the effectiveness of processor caches for scans, so moving them off can be beneficial.
+ * Allow major compactions to be scaled differently than the number of TabletServers, giving users more flexibility in allocating resources.
  * Even out hotspots where a few Tablet Servers have a lot of compaction work. External compactions allow this work to spread much wider than previously possible.
 
 
