@@ -204,6 +204,7 @@ The following tests were run on a cluster to exercise this new feature.
 
  1. Run continuous ingest for 24h with large compactions running externally in an autoscaled Kubernetes cluster.
  2. After ingest completion, started a full table compaction with all compactions running externally.
+ 3. Run continuous ingest verification process that looks for lost data.
 
 ### Setup
 
