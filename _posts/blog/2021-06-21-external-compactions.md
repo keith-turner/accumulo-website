@@ -10,9 +10,9 @@ compaction work to run outside of Tablet Servers.
 
 There are two types of [compactions][1] in Accumulo - Minor and Major. Minor
 compactions flush recently written data from memory to a new file. Major
-compactions merge two or more tablet files together into one new file. Starting
+compactions merge two or more Tablet files together into one new file. Starting
 in 2.1 Tablet Servers can run multiple major compactions for a Tablet
-concurrently; there is no longer a single thread pool per tablet server that
+concurrently; there is no longer a single thread pool per Tablet Server that
 runs compactions. Major compactions can be resource intensive and may run for a
 long time depending on several factors, to include the number and size of the
 input files, and the iterators configured to run during Major compaction.
@@ -26,12 +26,12 @@ Major compaction work can be wasted in the event of an untimely death of the
 Tablet Server or if a Tablet is migrated to another Tablet Server.
 
 
-An External Compaction is a Major compaction that occurs outside of a Tablet
-Server. The External Compaction feature is an extension of the Major compaction
+An external compaction is a major compaction that occurs outside of a Tablet
+Server. The external compaction feature is an extension of the Major compaction
 service in the Tablet Server and is configured as part of the systems’
 compaction service configuration. Thus, it is an optional feature. The goal of
-the External Compaction feature is to overcome some of the drawbacks of the
-Major compactions that happen inside the Tablet Server. Specifically, External
+the external compaction feature is to overcome some of the drawbacks of the
+Major compactions that happen inside the Tablet Server. Specifically, external
 compactions:
 
  * Allow Major compactions to continue when the originating TabletServer dies
@@ -41,16 +41,16 @@ compactions:
  * Even out hotspots where a few Tablet Servers have a lot of compaction work. External compactions allow this work to spread much wider than previously possible.
 
 
-The External Compaction feature in Apache Accumulo version 2.1.0 adds two new
-system-level processes, and new configuration properties. The new system-level
-processes are the Compactor and the CompactionCoordinator.
+The external compaction feature in Apache Accumulo version 2.1.0 adds two new
+system-level processes and new configuration properties. The new system-level
+processes are the Compactor and the Compaction Coordinator.
 
- * The Compactor is a process that is responsible for executing a Major compaction. There can be many Compactor’s running on a system. The Compactor communicates with the CompactionCoordinator to get information about the next Major compaction it will run and to report the completion state.
- * The CompactionCoordinator is a single process like the Manager. It is responsible for communicating with the Tablet Servers to gather information about queued External compactions, to reserve a Major compaction on the Compactor’s behalf, and to report the completion status of the reserved Major compaction.  For external compactions that complete when the tablet is offline, the coordinator buffers this information and reports it later.
+ * The Compactor is a process that is responsible for executing a Major compaction. There can be many Compactor’s running on a system. The Compactor communicates with the Compaction Coordinator to get information about the next Major compaction it will run and to report the completion state.
+ * The Compaction Coordinator is a single process like the Manager. It is responsible for communicating with the Tablet Servers to gather information about queued external compactions, to reserve a Major compaction on the Compactor’s behalf, and to report the completion status of the reserved Major compaction.  For external compactions that complete when the Tablet is offline, the Compaction Coordinator buffers this information and reports it later.
 
 ## Details
 
-Before we explain the implementation for External compactions, it’s probably
+Before we explain the implementation for external compactions, it’s probably
 useful to explain the changes for Major compactions that were made in the 2.1.0
 branch before external compactions were added. This is most apparent in the
 tserver.compaction.major.service and table.compaction.dispatcher configuration
@@ -86,7 +86,7 @@ config -t ci -s table.compaction.dispatcher.opts.service=cs1
 
 A small modification to the
 tserver.compaction.major.service.cs1.planner.opts.executors property in the
-example above would enable it to use External compactions. For example, let’s
+example above would enable it to use external compactions. For example, let’s
 say that we wanted all of the large compactions to be done externally, you
 would use this configuration:
 
@@ -118,31 +118,31 @@ bin/accumulo compactor -q DCQ1
 ```
 
 Once started the Compactor tries to find the location of the
-CompactionCoordinator in ZooKeeper and connect to it. Then, it asks the
-CompactionCoordinator for the next compaction job for the queue. The
-CompactionCoordinator will return to the Compactor the necessary information to
+Compaction Coordinator in ZooKeeper and connect to it. Then, it asks the
+Compaction Coordinator for the next compaction job for the queue. The
+Compaction Coordinator will return to the Compactor the necessary information to
 run the Major compaction, assuming there is work to be done. Note that the
 class performing the Major compaction in the Compactor is the same one used in
 the Tablet Server, so we are just transferring all of the input parameters from
 the Tablet Server to the Compactor. The Compactor communicates information back
-to the CompactionCoordinator when the compaction has started, finished
+to the Compaction Coordinator when the compaction has started, finished
 (successfully or not), and during the compaction (progress updates).
 
-### CompactionCoordinator
+### Compaction Coordinator
 
-The CompactionCoordinator is a singleton process in the system like the
-Manager. Also, like the Manager it supports standby CompactionCoordinator’s
-using locks in ZooKeeper. The CompactionCoordinator is started using the
+The Compaction Coordinator is a singleton process in the system like the
+Manager. Also, like the Manager it supports standby Compaction Coordinator’s
+using locks in ZooKeeper. The Compaction Coordinator is started using the
 command:
 
 ```
 bin/accumulo compaction-coordinator
 ```
 
-When running, the CompactionCoordinator polls the TabletServers for summary
+When running, the Compaction Coordinator polls the TabletServers for summary
 information about their external compaction queues. It keeps track of the Major
 compaction priorities for each Tablet Server and queue. When a Compactor
-requests the next Major compaction job the CompactionCoordinator finds the
+requests the next Major compaction job the Compaction Coordinator finds the
 Tablet Server with the highest priority Major compaction for that queue and
 communicates with that Tablet Server to reserve an external compaction. The
 priority in this case is an integer value based on the number of input files
@@ -158,29 +158,29 @@ example of the ecomp metadata column:
 2;10ba2e8ba2e8ba5 ecomp:ECID:94db8374-8275-4f89-ba8b-4c6b3908bc50 []    {"inputs":["hdfs://accucluster/accumulo/tables/2/t-00000ur/A00001y9.rf","hdfs://accucluster/accumulo/tables/2/t-00000ur/C00005lp.rf","hdfs://accucluster/accumulo/tables/2/t-00000ur/F0000dqm.rf","hdfs://accucluster/accumulo/tables/2/t-00000ur/F0000dq1.rf"],"nextFiles":[],"tmp":"hdfs://accucluster/accumulo/tables/2/t-00000ur/C0000dqs.rf_tmp","compactor":"10.2.0.139:9133","kind":"SYSTEM","executorId":"DCQ1","priority":-32754,"propDels":true,"selectedAll":false}
 ```
 
-When the Compactor notifies the CompactionCoordinator that it has finished the
-Major compaction, the CompactionCoordinator attempts to notify the Tablet
-Server and inserts an External compaction final state marker into the metadata
+When the Compactor notifies the Compaction Coordinator that it has finished the
+Major compaction, the Compaction Coordinator attempts to notify the Tablet
+Server and inserts an external compaction final state marker into the metadata
 table. Below is an example of the final state marker:
 
 ```
 ~ecompECID:de6afc1d-64ae-4abf-8bce-02ec0a79aa6c : []        {"extent":{"tableId":"2"},"state":"FINISHED","fileSize":12354,"entries":100000}
 ```
 
-If the CompactionCoordinator is able to reach the Tablet Server and that Tablet
+If the Compaction Coordinator is able to reach the Tablet Server and that Tablet
 Server is still hosting the Tablet, then the compaction is committed and both
 of the entries are removed from the metadata table. In the case that the Tablet
 is offline when the compaction attempts to commit, there is a thread in the
-CompactionCoordinator that looks for completed, but not yet committed, External
+Compaction Coordinator that looks for completed, but not yet committed, external
 compactions and periodically attempts to contact the Tablet Server hosting the
-Tablet to commit the compaction. The CompactionCoordinator periodically removes
-the final state markers related to tablets that no longer exist. In the case of
-an External compaction failure the CompactionCoordinator notifies the tablet
-and the tablet cleans up file reservations and removes the metadata entry.
+Tablet to commit the compaction. The Compaction Coordinator periodically removes
+the final state markers related to Tablets that no longer exist. In the case of
+an external compaction failure the Compaction Coordinator notifies the Tablet
+and the Tablet cleans up file reservations and removes the metadata entry.
 
 ### Edge Cases
 
-There are several situations involving External compactions that we tested as part of this feature. These are:
+There are several situations involving external compactions that we tested as part of this feature. These are:
 
  * Tablet migration
  * When a user initiated compaction is canceled
@@ -192,9 +192,9 @@ There are several situations involving External compactions that we tested as pa
 
 
 Compactors periodically check if the compaction they are running is related to
-a deleted table, split/merged tablet, or canceled user initiated compaction. If
+a deleted table, split/merged Tablet, or canceled user initiated compaction. If
 any of these cases happen the Compactor interrupts the compaction and notifies
-the CompactionCoordinator. An External compaction continues in the case of
+the Compaction Coordinator. An external compaction continues in the case of
 Tablet Server death, Tablet migration, Coordinator restart, and the Table being
 taken offline.
 
@@ -229,8 +229,8 @@ number of pods running.
 
 ![Cluster Layout](/images/blog/202106_ecomp/clusters-layout.png)
 
-One problem we ran into was communication between compactors running inside
-Kubernetes with processes like the compaction-coordinator and datanodes running
+One problem we ran into was communication between Compactors running inside
+Kubernetes with processes like the Compaction Coordinator and DataNodes running
 outside of Kubernetes in the Muchos cluster.  For some insights into how these
 problems were overcome, checkout the comments in the [deployment
 spec](/images/blog/202106_ecomp/accumulo-compactor-muchos.yaml) used.
@@ -251,7 +251,7 @@ config -s tserver.compaction.major.service.cs1.planner=org.apache.accumulo.core.
 
 The continuous ingest table was configured to use the above compaction service.
 The table's compaction ratio was also lowered from the default of 3 to 2.  A
-lower compaction ratio results in less files per tablet and more compaction
+lower compaction ratio results in less files per Tablet and more compaction
 work.
 
 ```
@@ -260,7 +260,7 @@ config -t ci -s table.compaction.dispatcher.opts.service=cs1
 config -t ci -s table.compaction.major.ratio=2
 ```
 
-The CompactionCoordinator was manually started on the Muchos VM where the
+The Compaction Coordinator was manually started on the Muchos VM where the
 Accumulo Manager, Zookeeper server, and the Namenode were running. The
 following command was used to do this.
 
@@ -283,7 +283,7 @@ docker build --build-arg ACCUMULO_VERSION=2.1.0-SNAPSHOT --build-arg ACCUMULO_FI
 ```
 
 The Docker image was tagged and then pushed to a container registry accessible by
-Kubernetes. Then the following commands were run to start the compactors using
+Kubernetes. Then the following commands were run to start the Compactors using
 [accumulo-compactor-muchos.yaml](/images/blog/202106_ecomp/accumulo-compactor-muchos.yaml).
 The yaml file contains comments explaining issues related to IP addresses and DNS names.
 
@@ -292,7 +292,7 @@ kubectl apply -f accumulo-compactor-muchos.yaml
 kubectl autoscale deployment accumulo-compactor --cpu-percent=80 --min=10 --max=660
 ```
 
-The autoscale command causes compactors to scale between 10
+The autoscale command causes Compactors to scale between 10
 and 660 pods based on CPU usage. When pods average CPU is above 80%, then
 pods are added to meet the 80% goal. When it's below 80%, pods
 are stopped to meet the 80% goal with 5 minutes between scale down
@@ -309,7 +309,7 @@ worker VMs, so the max of 660 exceeds what the Muchos cluster could run itself.
 
 ### Ingesting data
 
-After starting compactors, 22 continuous ingest clients (from
+After starting Compactors, 22 continuous ingest clients (from
 accumulo_testing) were started.  The following plot shows the number of
 compactions running in the three different compaction queues
 configured.  The executor cs1_small is for compactions <= 32M and it stayed
@@ -319,21 +319,21 @@ compaction queue is properly configured for new small files. The executor
 cs1_medium was for compactions >32M and <=128M and it was not as busy, but did
 have steady work.  The external compaction queue DCQ1 processed all compactions
 over 128M and had some spikes of work.  These spikes are to be expected with
-continuous ingest as all tablets are written to evenly and eventually all of
-the tablets need to run large compactions around the same time. 
+continuous ingest as all Tablets are written to evenly and eventually all of
+the Tablets need to run large compactions around the same time. 
   
 ![Compactions Running](/images/blog/202106_ecomp/ci-running.png)
 
 The following plot shows the number of pods running in Kubernetes.  As
-compactors used more and less CPU the number of pods automatically scaled up
+Compactors used more and less CPU the number of pods automatically scaled up
 and down.
 
 ![Pods Running](/images/blog/202106_ecomp/ci-pods-running.png)
 
 The following plot shows the number of compactions queued.  When the
 compactions queued for cs1_small spiked above 750, it was adjusted from 4
-threads per tserver to 6 threads.  This configuration change was made while
-everything was running and the tservers saw it and reconfigured their thread
+threads per Tablet Server to 6 threads.  This configuration change was made while
+everything was running and the Tablet Servers saw it and reconfigured their thread
 pools on the fly.
 
 ![Pods Queued](/images/blog/202106_ecomp/ci-queued.png)
@@ -352,21 +352,21 @@ Tablet servers emit metrics about queued and running compactions for every
 compaction executor configured.  User can observe these metrics and tune
 the configuration based on what they see, as was done in this test.
 
-The following plot shows the average files per tablet during the
+The following plot shows the average files per Tablet during the
 test. The numbers are what would be expected for a compaction ratio of 2 when
 the system is keeping up with compaction work.
 
 ![Files Per Tablet](/images/blog/202106_ecomp/ci-files-per-tablet.png)
 
-The following is a plot of the number tablets during the test.
-Eventually there were 11.28K tablets around 512 tablets per tserver.  The
-tablets were close to splitting again at the end of the test as each tablet was
+The following is a plot of the number Tablets during the test.
+Eventually there were 11.28K Tablets around 512 Tablets per Tablet Server.  The
+Tablets were close to splitting again at the end of the test as each Tablet was
 getting close to 1G.
 
 ![Online Tablets](/images/blog/202106_ecomp/ci-online-tablets.png)
 
 The following plot shows ingest rate over time.  The rate goes down as the
-number of tablets per tserver goes up, this is expected.
+number of Tablets per Tablet Server goes up, this is expected.
 
 ![Ingest Rate](/images/blog/202106_ecomp/ci-ingest-rate.png)
 
@@ -382,10 +382,10 @@ After stopping ingest and letting things settle, a full table compaction was
 kicked off. Since all of these compactions would be over 128M, all of them were
 scheduled on the external queue DCQ1.  The two plots below show compactions
 running and queued for the ~2 hours it took to do the compaction. When the
-compaction was initiated there were 10 compactors running in pods.  All 11K
-tablets were queued for compaction and because the pods were always running
+compaction was initiated there were 10 Compactors running in pods.  All 11K
+Tablets were queued for compaction and because the pods were always running
 high CPU Kubernetes kept adding pods until the max was reached resulting in 660
-compactors running until all the work was done.
+Compactors running until all the work was done.
 
 ![Full Table Compactions Running](/images/blog/202106_ecomp/full-table-compaction-queued.png)
 
@@ -416,7 +416,7 @@ Probably the best metric to use for scaling the Compactors is the size of the
 external compaction queue. Another possible solution is to take the DataNode
 utilization into account somehow. We found that in scaling up the Compactors
 based on their CPU usage we could overload DataNodes.  Once DataNodes were
-overwhelmed, compactors CPU would drop and the number of pods would naturally
+overwhelmed, Compactors CPU would drop and the number of pods would naturally
 scale down.
 
 To use custom metrics you would need to get the metrics from Accumulo into a
@@ -446,10 +446,10 @@ scale down.
 
 The other major issue we ran into was connectivity between the Compactors and
 the other server processes. The Compactor communicates with ZooKeeper and the
-CompactionCoordinator, both of which were running outside of Kubernetes.  There
+Compaction Coordinator, both of which were running outside of Kubernetes.  There
 as no common DNS between the Muchos and Kubernetes cluster, but IPs were
 visible to both. The Compactor connects to ZooKeeper to find the address of the
-CompactionCoordinator so that it can connect to it and look for work. By
+Compaction Coordinator so that it can connect to it and look for work. By
 default the Accumulo server processes use the hostname as their address which
 would not work as those names would not resolve inside the Kubernetes cluster.
 We had to start the Accumulo processes using the `-a` argument and set the
@@ -470,9 +470,9 @@ Compactors being killed.
 
 We discussed also running the following test, but did not have time.
 
- * Agitating the coordinator, tservers and compactors while ingest was running.
+ * Agitating the Compaction Coordinator, Tablet Servers and Compactors while ingest was running.
  * Comparing the impact on queries for internal vs external compactions.
- * Having multiple external compaction queues, each with its own set of autoscaled compactor pods.
+ * Having multiple external compaction queues, each with its own set of autoscaled Compactor pods.
  * Forcing full table compactions while ingest was running.
 
 The test we ran shows that basic functionality works well, it would be nice to
