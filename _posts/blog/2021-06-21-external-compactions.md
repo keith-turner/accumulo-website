@@ -216,7 +216,7 @@ configuration.
  * Open JDK 11
  * Zookeeper 3.6.2
  * Hadoop 3.3.0
- * Accumulo 2.1.0-SNAPSHOT [dad7e01ae7d450064cba5d60a1e0770311ebdb64][2]
+ * Accumulo 2.1.0-SNAPSHOT [dad7e01][2]
  * 23 D16s_v4 VMs, each with 16x128G HDDs stripped using LVM. 22 were workers.
 
 
@@ -267,18 +267,21 @@ following command was used to do this.
 nohup accumulo compaction-coordinator >/var/data/logs/accumulo/compaction-coordinator.out 2>/var/data/logs/accumulo/compaction-coordinator.err &
 ```
 
-To start Compactors, Accumulo’s [docker](https://github.com/apache/accumulo-docker/tree/next-release)
-image was built from the `next-release` branch by checking out the Apache
-Accumulo git repo at commit dad7e01ae7d450064cba5d60a1e0770311ebdb64 and building
-the binary distribution using the command `mvn clean package -DskipTests`. The
-resulting tar file was copied to the accumulo-docker base directory and the image
-was built using the command:
+To start Compactors, Accumulo’s
+[docker](https://github.com/apache/accumulo-docker/tree/next-release) image was
+built from the `next-release` branch by checking out the Apache Accumulo git
+repo at commit [dad7e01][2] and building the binary distribution using the
+command `mvn clean package -DskipTests`. The resulting tar file was copied to
+the accumulo-docker base directory and the image was built using the command:
 
 ```
-docker build --build-arg ACCUMULO_VERSION=2.1.0-SNAPSHOT --build-arg ACCUMULO_FILE=accumulo-2.1.0-SNAPSHOT-bin.tar.gz -t accumulo .
+docker build --build-arg ACCUMULO_VERSION=2.1.0-SNAPSHOT --build-arg ACCUMULO_FILE=accumulo-2.1.0-SNAPSHOT-bin.tar.gz \
+             --build-arg HADOOP_FILE=hadoop-3.3.0.tar.gz \
+             --build-arg ZOOKEEPER_VERSION=3.6.2  --build-arg ZOOKEEPER_FILE=apache-zookeeper-3.6.2-bin.tar.gz  \
+             --build-arg HADOOP_USER_NAME=centos -t accumulo .
 ```
 
-The Docker image was then pushed to a container registry accessible by
+The Docker image was tagged and then pushed to a container registry accessible by
 Kubernetes. Then the following commands were run to start the compactors using
 [accumulo-compactor-muchos.yaml](/images/blog/202106_ecomp/accumulo-compactor-muchos.yaml).
 The yaml file contains comments explaining issues related to IP addresses and DNS names.
@@ -288,11 +291,11 @@ kubectl apply -f accumulo-compactor-muchos.yaml
 kubectl autoscale deployment accumulo-compactor --cpu-percent=80 --min=10 --max=660
 ```
 
-The autoscale command above causes compactors to scale up and down between 10
-and 660 based on CPU usage. When the average CPU of all pods is above 80%, then
-enough pods are added to meet the 80% goal. When it's below 80%, enough pods
-are stopped to meet the 80% goal with a default of 5 minutes between scale down
-events. This can sometimes lead to compactors running compactions being
+The autoscale command causes compactors to scale between 10
+and 660 pods based on CPU usage. When pods average CPU is above 80%, then
+pods are added to meet the 80% goal. When it's below 80%, pods
+are stopped to meet the 80% goal with 5 minutes between scale down
+events. This can sometimes lead to running compactions being
 stopped. During the test there were ~537 dead compactions that were probably
 caused by this( there were 44K successful external compactions). The max of 660
 was chosen based on the number of datanodes in the Muchos cluster.  There were
@@ -302,15 +305,12 @@ important lesson we learned is that external compactions can strain the HDFS
 DataNodes, so it’s important to consider how many concurrent external
 compactions will be running. The Muchos cluster had 22x16=352 cores on the
 worker VMs, so the max of 660 exceeds what the Muchos cluster could run itself.
-An earlier test tried running 1000 external compaction which stressed HDFS, and
-therefore the metadata table a bit, leading to the changes in #2152 which
-worked well in this test.
 
 ### Ingesting data
 
-After the compactors were started, 22 continuous ingest clients (from
+After starting compactors, 22 continuous ingest clients (from
 accumulo_testing) were started.  The following plot shows the number of
-compactions running in the three different compactions queues that were
+compactions running in the three different compaction queues
 configured.  The executor cs1_small is for compactions <= 32M and it stayed
 pretty busy as minor compactions constantly produce new small files.  In 2.1.0
 merging minor compactions were removed, so it's important to ensure a
@@ -348,16 +348,16 @@ The metrics emitted by Accumulo for these plots had the following names.
  * TabletServer1.tserver.compactionExecutors.i_cs1_small_running
 
 Tablet servers emit metrics about queued and running compactions for every
-compaction executor configured in Accumulo.  These metrics can be used to tune
-the configuration as was done in this test.
+compaction executor configured.  User can observe these metrics and tune
+the configuration based on what they see, as was done in this test.
 
-The following plot shows the average files per tablet over the lifetime of the
+The following plot shows the average files per tablet during the
 test. The numbers are what would be expected for a compaction ratio of 2 when
 the system is keeping up with compaction work.
 
 ![Files Per Tablet](/images/blog/202106_ecomp/ci-files-per-tablet.png)
 
-The following is a plot of the number tablets over the lifetime of the test.
+The following is a plot of the number tablets during the test.
 Eventually there were 11.28K tablets around 512 tablets per tserver.  The
 tablets were close to splitting again at the end of the test as each tablet was
 getting close to 1G.
@@ -369,8 +369,8 @@ number of tablets per tserver goes up, this is expected.
 
 ![Ingest Rate](/images/blog/202106_ecomp/ci-ingest-rate.png)
 
-The following plot shows the number of key/values in Accumulo over the lifetime
-of the test.  When ingest was stopped, there were 266 billion key values in the
+The following plot shows the number of key/values in Accumulo during
+the test.  When ingest was stopped, there were 266 billion key values in the
 continuous ingest table.
 
 ![Table Entries](/images/blog/202106_ecomp/ci-entries.png)
@@ -390,6 +390,20 @@ compactors running until all the work was done.
 
 ![Full Table Compactions Queued](/images/blog/202106_ecomp/full-table-compaction-running.png)
 
+### Verification
+
+After running everything mentioned above, the continuous ingest verification
+map reduce job was run.  This job looks for holes in the linked list produced
+by continuous ingest which indicate Accumulo lost data.  No holes were found.
+The counts below were emitted by the job.  If there were holes a non-zero
+UNDEFINED count would be present.
+
+```
+        org.apache.accumulo.testing.continuous.ContinuousVerify$Counts
+                REFERENCED=266225036149
+                UNREFERENCED=22010637
+```
+
 ## Hurdles
 
 ### How to Scale Up
@@ -399,14 +413,16 @@ that we could use Kubernetes [Horizontal Pod Autoscaler][3] (HPA) to scale the
 Compactors up and down based on load. But the question remained how to do that.
 Probably the best metric to use for scaling the Compactors is the size of the
 external compaction queue. Another possible solution is to take the DataNode
-CPU usage into account somehow. We found that in scaling up the Compactors
-based on their CPU usage we likely overloaded the DataNodes. 
+utilization into account somehow. We found that in scaling up the Compactors
+based on their CPU usage we could overload DataNodes.  Once DataNodes were
+overwhelmed, compactors CPU would drop and the number of pods would naturally
+scale down.
 
 To use custom metrics you would need to get the metrics from Accumulo into a
 metrics store that has a [metrics adapter][4]. One possible solution, available
 in Hadoop 3.3.0, is to use Prometheus, the [Prometheus Adapter][5], and enable
-the Hadoop PrometheusMetricsSink added in
-https://issues.apache.org/jira/browse/HADOOP-16398 to expose the custom queue
+the Hadoop PrometheusMetricsSink added in 
+[HADOOP-16398](https://issues.apache.org/jira/browse/HADOOP-16398) to expose the custom queue
 size metrics. This seemed like the right solution, but it also seemed like a
 lot of work that was outside the scope of this blog post. Ultimately we decided
 to take the simplest approach - use the native Kubernetes metrics-server and
@@ -421,22 +437,24 @@ user-defined grace period, then a SIGKILL. For the purposes of this test we did
 not define a pre-stop hook or a grace period. It’s likely possible to handle
 this situation more gracefully, but for this test our Compactors were killed
 and the compaction work lost when the HPA decided to scale down the Compactors.
-It was a good test of how we handled failed Compactors.
+It was a good test of how we handled failed Compactors.  Investigation is
+needed to determine if changes are needed in Accumulo to facilitate graceful
+scale down.
 
 ### How to Connect
 
 The other major issue we ran into was connectivity between the Compactors and
 the other server processes. The Compactor communicates with ZooKeeper and the
-CompactionCoordinator, both of which were running outside of Kubernetes. The
-Compactor connects to ZooKeeper to find the address of the
+CompactionCoordinator, both of which were running outside of Kubernetes.  There
+as no common DNS between the Muchos and Kubernetes cluster, but IPs were
+visible to both. The Compactor connects to ZooKeeper to find the address of the
 CompactionCoordinator so that it can connect to it and look for work. By
 default the Accumulo server processes use the hostname as their address which
 would not work as those names would not resolve inside the Kubernetes cluster.
 We had to start the Accumulo processes using the `-a` argument and set the
-hostname to the IP address. I’m not sure there is a one size fits all solution
-here. I think solving the connectivity issues between components running in
-Kubernetes and components external is going to be situation dependent and
-carefully planned out.
+hostname to the IP address. Solving connectivity issues between components
+running in Kubernetes and components external depends on the capabilities
+available in the environment and the `-a` option may be part of the solution.
 
 ## Conclusion
 
@@ -447,7 +465,17 @@ sized Kubernetes cluster that dynamically scaled Compactors on 3 to 100 compute
 nodes from 10 to 660 instances. We ran continuous ingest on the Accumulo
 cluster to create compactions that were run both internal and external to the
 Tablet Server and demonstrated external compactions completing successfully and
-Compactors being killed. 
+Compactors being killed.
+
+We discussed also running the following test, but did not have time.
+
+ * Agitating the coordinator, tservers and compactors while ingest was running.
+ * Comparing the impact on queries for internal vs external compactions.
+ * Having multiple external compaction queues, each with its own set of autoscaled compactor pods.
+ * Forcing full table compactions while ingest was running.
+
+The test we ran shows that basic functionality works well, it would be nice to
+stress the feature in other ways though.
 
 [1]:https://storage.googleapis.com/pub-tools-public-publication-data/pdf/68a74a85e1662fe02ff3967497f31fda7f32225c.pdf
 [2]:https://github.com/apache/accumulo/commit/dad7e01ae7d450064cba5d60a1e0770311ebdb64
