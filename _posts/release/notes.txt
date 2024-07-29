@@ -1,21 +1,6 @@
 CANDIDATES
 
- Fix CredentialProviderToken serialization (#4580) issue : #4573
  Modified Deriver to throw Exception on null result (#4746) issue:4423
- Update PrintInfo to not print unneeded exception messages (#4634)
- Fixes 'admin fate --print/--summary' no node exception bug (#4556)
- Add scan server prefix to valid zooProp list (#4487)
- fixes bug with starting multiple group of scan servers (#4445)/
- Added compactors_per_host to accumulo-cluster script (#4329)
- Add instance name tag to metrics (#3998)
-  Adds Static "named" constructors and updates GC (#3805)
-  Use ZooCache in ExternalCompactionUtil.findCompactionCoordinator (#3813)
-  Use memory percentage for GC batch size (#3725)
-  avoids creating server side threads when canceling failed write (#3756)
-  Remove GC candidates found to still be referenced (#3738)
-  Adjust shell to indicate how re-authtication occurs (#3726)
-  Cache Hadoop config in getVolumeManagerConfiguration (#3706)
-   consolidate y/n prompts in shell (#3684)
 
 
 DONE
@@ -47,6 +32,14 @@ scan server metrics from #4458 based on #4459 (#4461)
 Additional metrics changes (#4459)
 Setting empty property value no longer deletes property (#4731) issue:#4456
 fixes bug with bulk import RPC failure and retry (#4000)
+Add instance name tag to metrics (#3998)
+Remove GC candidates found to still be referenced (#3738)
+fixes bug with starting multiple group of scan servers (#4445)/
+Added compactors_per_host to accumulo-cluster script (#4329)
+Use memory percentage for GC batch size (#3725)
+Add scan server prefix to valid zooProp list (#4487)
+Cache Hadoop config in getVolumeManagerConfiguration (#3706)
+Fixes 'admin fate --print/--summary' no node exception bug (#4556)
 
 IGNORE
 
@@ -55,3 +48,10 @@ Always balance root and metadata tables (#4709)  : its speculated this would imp
  fixes split recovery for metadata tablet (#4137)
  Warn when tablet needs compacting and is not (#4143)
  Fixes handling of incorrect compaction configuration (#3912)
+ avoids creating server side threads when canceling failed write (#3756)
+ Update PrintInfo to not print unneeded exception messages (#4634)
+ Use ZooCache in ExternalCompactionUtil.findCompactionCoordinator (#3813)
+consolidate y/n prompts in shell (#3684)
+ Adjust shell to indicate how re-authtication occurs (#3726)
+ Fix CredentialProviderToken serialization (#4580) issue : #4573
+  Adds Static "named" constructors and updates GC (#3805)
